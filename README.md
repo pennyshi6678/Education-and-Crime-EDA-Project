@@ -8,6 +8,7 @@ Here is the presentation on the analysis of [Education's Role on Reducing Crimes
 The narrative will be supported by visualizations tailored for key stakeholders:
 ### 1. Chief of Police and Staff:
 Objective: Provide insights into crime trends, identify high-risk areas, and evaluate the effectiveness of current policing strategies.
+
 Narrative Features:
 - Visualization of citywide crime rates over time.
 - Identification of the five most and five least dangerous neighborhoods.
@@ -17,6 +18,7 @@ Narrative Features:
 
 ### 2. CEO of Chicago Public Schools (CPS) and Staff:
 Objective: Understand the impact of educational factors on crime rates and identify schools in high-crime areas that are performing exceptionally well.
+
 Narrative Features:
 
 - Visualization of student performance metrics across neighborhoods.
@@ -26,6 +28,7 @@ Narrative Features:
 
 ### 3. Mayor, Deputy Mayor, Chief of Public Policy, and Chief Data Officer:
 Objective: Gain a comprehensive understanding of the interplay between education and crime to inform policy decisions.
+
 Narrative Features:
 
 - Citywide crime rate trends with a focus on educational institutions.
