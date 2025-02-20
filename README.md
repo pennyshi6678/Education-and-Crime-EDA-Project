@@ -1,7 +1,7 @@
 # Education-and-Crime-EDA
 This is an Exploratory Data Analysis project on the Role of Education in Reducing Crime in Chicago. The project aims to develop a data-driven narrative to assist Chicago's leadership in reducing the city's crime rate by 25% over three years.
 
-This file contains the data visualization outputs(graph, charts, and others) for my project [EDA (Exploratory Data Analysis) on Education and Crimes in Chicago from 2012-2014.](https://github.com/pennyshi6678/Education-and-Crime-EDA/blob/main/Exploratory%20Data%20Analysis%20(EDA)%20on%20Education%20and%20Crime%20in%20Chicago.pdf).
+This file contains the data visualization outputs(graph, charts, and others) for my project [EDA (Exploratory Data Analysis) on Education and Crimes in Chicago from 2012-2014.](https://github.com/pennyshi6678/Education-and-Crime-EDA/blob/main/Exploratory%20Data%20Analysis%20(EDA)%20on%20Education%20and%20Crime%20in%20Chicago.pdf)
 
 Here is the presentation on the analysis of [Education's Role on Reducing Crimes in Chicago](https://github.com/pennyshi6678/Education-and-Crime-EDA/blob/main/Analysis%20of%20Education%20and%20Crimes%20in%20Chicago.pdf). 
 
