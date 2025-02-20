@@ -1,0 +1,682 @@
+---
+title: "Exploratory Data Analysis (EDA) on Education and Crime in Chicago"
+author: "Penny Shi"
+format: html
+execute:
+  echo: true
+---
+
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
+
+```{python}
+import os
+
+# Define the output directory
+output_pic = "/Users/changgeshi/Desktop/crime-EDA-folder/pictures"
+```
+
+# Crime Data EDA
+## Data Loading and Cleaning
+
+```{python}
+df = pd.read_csv('/Users/changgeshi/Desktop/crime_data_updated_zipcode.csv')
+df_cleaned = df.copy()
+df_cleaned["Zip Codes"] = df_cleaned["zip_code"].astype(str)
+df_cleaned.info()
+```
+
+## Data Visualization
+
+### 1. 10 Most Dangerous Neiborhooods (Zip Codes)
+```{python}
+# 10 Most Dangerous Neighborhoods
+crime_counts = df_cleaned['Zip Codes'].value_counts()
+most_dangerous = crime_counts.head(10)
+```
+```{python}
+#| include: false
+
+plt.figure(figsize=(10, 5))
+most_dangerous.plot(kind='bar', color='red', alpha=0.7)
+plt.title('Top 10 Most Dangerous Neighborhoods by Zip Code')
+plt.xlabel('Zip Code')
+plt.ylabel('Number of Crimes')
+plt.xticks(rotation=45)
+plt.grid(False)
+
+plt.savefig("Dangerous_Neighborhoods_chart.png", bbox_inches='tight')
+```
+
+![**10 Most Dangerous Neiborhooods (Zip Codes)**](Dangerous_Neighborhoods_chart.png){align=center width=90%}
+
+
+### 2. 10 Safest Neiborhooods 
+```{python}
+#| include: false
+# 10 Safest Neighborhoods
+
+safest = crime_counts.tail(10)
+
+plt.figure(figsize=(10, 5))
+safest.plot(kind='bar', color='green', alpha=0.7)
+plt.title('Top 10 Safest Neighborhoods by Zip Code')
+plt.xlabel('Zip Code')
+plt.ylabel('Number of Crimes')
+plt.xticks(rotation=45)
+plt.grid(False)
+plt.tight_layout()
+plt.savefig("Safest_Neighborhoods_chart.png", bbox_inches='tight')
+```
+
+![**10 Safest Neiborhooods (Zip Codes)**](Safest_Neighborhoods_chart.png){align=center width=90%}
+
+
+### 3. Top 5 Crime Type by Crime Status 
+```{python}
+#| include: false
+# Count total crimes by Primary Type (top 10)
+total_crimes = df_cleaned['Primary Type'].value_counts().head(10)
+
+# Count arrested crimes by Primary Type
+arrested_crimes = df_cleaned[df_cleaned['Arrest'] == True]['Primary Type'].value_counts().head(10)
+
+# Calculate non-arrested crimes by subtracting arrested crimes from total crimes
+non_arrested_crimes = total_crimes - arrested_crimes
+
+# Merge the three counts into a single DataFrame
+crime_data = pd.DataFrame({
+    'Arrested Crimes': arrested_crimes,
+    'Non-Arrested Crimes': non_arrested_crimes
+}).fillna(0)  # Fill NaN values with 0 for missing data
+
+# Sort the DataFrame by the total crime count (sum of arrested and non-arrested crimes)
+crime_data['Total Crimes'] = crime_data['Arrested Crimes'] + crime_data['Non-Arrested Crimes']
+crime_data = crime_data.sort_values(by='Total Crimes', ascending=False)
+
+# Limit to top 5 crimes
+crime_data_top5 = crime_data.head(5)
+
+# Plotting
+fig, ax = plt.subplots(figsize=(12, 6))
+crime_data_top5.drop('Total Crimes', axis=1).plot(kind='bar', stacked=True, ax=ax, color=['blue', 'orange'])
+
+# Adding labels and title
+plt.title('Top 5 Crimes: Arrested vs Non-Arrested Crimes (Sorted by Total Crimes)')
+plt.xlabel('Crime Type')
+plt.ylabel('Crime Count')
+plt.xticks(rotation=45, ha='right')
+plt.legend(title='Crime Status', labels=['Arrested Crimes', 'Total Crimes'])
+plt.tight_layout()
+plt.savefig("top5_crime.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Top 5 Crime Type by Crime Status - Arrested Crimes & Non-Arrested Crimes)**](top5_crime.png){align=center width=90%}
+
+### 4. Crime Type in the Most Dangerous Neighborhood
+```{python}
+#| include: false
+# Find the 5 most dangerous zip codes based on crime count
+most_dangerous_zipcodes = df_cleaned['Zip Codes'].value_counts().head(5).index
+
+# Filter data for the top 5 dangerous zip codes
+top_zipcodes_df = df_cleaned[df_cleaned['Zip Codes'].isin(most_dangerous_zipcodes)]
+
+# Plot crime types for the top dangerous zip codes using a palette of your choice
+plt.figure(figsize=(12, 6))
+sns.countplot(data=top_zipcodes_df, x='Primary Type', hue='Zip Codes', palette='Set2')  # Replace with any palette you prefer
+plt.title('Crime Types in the Five Most Dangerous ZIP Codes')
+plt.xlabel('Crime Type')
+plt.ylabel('Number of Crimes')
+plt.xticks(rotation=45, ha='right')
+plt.legend(title='ZIP Code')
+#plt.savefig("crime_type_most_dangerous_neighbor.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Crime Type in the Most Dangerous Neighborhood**](crime_type_most_dangerous_neighbor.png){align=center width=90%}
+
+
+### 5. Crime Distribution by Type
+```{python}
+#| include: false
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df_cleaned, x='Primary Type', order=df_cleaned['Primary Type'].value_counts().index, palette='viridis')
+plt.title('Crime Distribution by Type (2012–2014)')
+plt.xlabel('Crime Type')
+plt.ylabel('Number of Crimes')
+plt.xticks(rotation=45, ha='right')
+plt.grid(False)
+plt.savefig("Crime_Distribution_by_Type.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Crime Type Distribution from 2012-2014**](Crime_Distribution_by_Type.png){align=center width=90%}
+
+
+### 6. Crime Rate by Day of the Week 
+```{python}
+#| include: false
+# Extract day of the week from the Date column (0=Monday, 6=Sunday)
+df_cleaned['day_of_week'] = pd.to_datetime(df_cleaned['Date']).dt.dayofweek
+
+# Crimes by day of the week
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df_cleaned, x='day_of_week', palette='magma')
+plt.title('Crimes by Day of the Week (2012–2014)')
+plt.xlabel('Day of the Week')
+plt.ylabel('Number of Crimes')
+plt.xticks(ticks=np.arange(7), labels=['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+
+# Add grid only for y-axis
+plt.grid(False)
+plt.savefig("crime_by_day.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Crime Rate by Day of the Week**](crime_by_day.png){align=center width=90%}
+
+### 7. Crime Rate by Hour of the Day
+```{python}
+#| include: false
+# Extract hour from Date
+df_cleaned['hour'] = pd.to_datetime(df_cleaned['Date']).dt.hour
+
+# Crime occurrences by hour of the day
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df_cleaned, x='hour', palette='coolwarm')
+plt.title('Crime Rate by Hour of the Day (2012–2014)')
+plt.xlabel('Hour of the Day')
+plt.ylabel('Number of Crimes')
+
+# Add grid only for y-axis
+plt.grid(False)
+plt.savefig("crime_by_hour.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Crime Rate by Hour of the Day**](crime_by_hour.png){align=center width=90%}
+
+# Education Data EDA
+## Data Loading and Cleaning
+```{python} 
+merged_data_full_path = "/Users/changgeshi/Desktop/2012_2014.csv"
+merged_data_full = pd.read_csv(merged_data_full_path)
+
+all_columns = merged_data_full.columns.tolist()
+all_columns_summary = {
+    "Total Columns": len(all_columns)
+   #"Columns": all_columns
+}
+
+head_preview = merged_data_full.head(5)
+
+{
+    "Total Columns": all_columns_summary["Total Columns"],
+    #"Column Names": all_columns_summary["Columns"],
+    "Preview of Data": head_preview
+}
+```
+
+***Columns: 157***
+***Rows: 91***
+
+## Data Visualization
+
+### 1. Distribution of CPS Performance Policy Levels (Level 1-3) 
+```{python}
+#| include: false
+# Distribution of CPS Performance Policy Levels (2012-2014)
+performance_levels_counts = merged_data_full["CPS Performance Policy Level"].value_counts()
+
+plt.figure(figsize=(10, 6))
+sns.barplot(
+    x=performance_levels_counts.values,
+    y=performance_levels_counts.index,
+    palette="pastel",
+   # edgecolor="black"
+)
+plt.title("Distribution of CPS Performance Policy Levels (2012-2014)", fontsize=14)
+plt.xlabel("Number of Schools", fontsize=12)
+plt.ylabel("Performance Levels", fontsize=12)
+plt.grid(axis="x", linestyle="--", alpha=0.7)
+plt.savefig("distribution_CPS.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Distribution of CPS Performance Policy Levels**](distribution_CPS.png){align=center width=90%}
+
+
+### 2. Performance Levels and Graduation Rates 
+```{python}
+#| include: false
+# Trends in Performance Levels Over Time 
+performance_trends = merged_data_full.groupby("CPS Performance Policy Level")[
+    ["4-Year Graduation Rate Percentage 2012", "4-Year Graduation Rate Percentage 2013"]
+].mean()
+
+performance_trends_reset = performance_trends.reset_index().melt(
+    id_vars="CPS Performance Policy Level",
+    var_name="Academic Year",
+    value_name="Average Graduation Rate"
+)
+
+performance_trends_filtered = performance_trends_reset[
+    performance_trends_reset["CPS Performance Policy Level"] != "NOT ENOUGH DATA"
+]
+
+plt.figure(figsize=(12, 8))
+sns.barplot(
+    data=performance_trends_filtered,
+    x="CPS Performance Policy Level",
+    y="Average Graduation Rate",
+    hue="Academic Year",
+    palette=["#008080", "#FFD700"],
+)
+plt.title("Trends in Performance Levels Over Time (2012&2013)", fontsize=14)
+plt.xlabel("Performance Levels", fontsize=12)
+plt.ylabel("Average Graduation Rate (%)", fontsize=12)
+plt.legend(title="Academic Year")
+plt.grid(False)
+plt.savefig("performance_graduation.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Relationship between Performance Level and Graduation Rates**](performance_graduation.png){align=center width=90%}
+
+
+### 3. Attendance Level and Graduation Rates 
+```{python}
+#| include: false
+# Attendance Impact Graph
+plt.figure(figsize=(15, 8))
+merged_data_full["Attendance_Group"] = pd.qcut(
+    merged_data_full["Teacher Attendance Percentage 2013"],
+    q=5,
+    labels=["Very Low", "Low", "Medium", "High", "Very High"]
+)
+grad_by_attendance = merged_data_full.groupby("Attendance_Group")["4-Year Graduation Rate Percentage 2013"].mean()
+
+colors = ["#FF6B6B", "#FF9E64", "#FFD93D", "#6BCB77", "#4D96FF"]
+for i, (group, value) in enumerate(grad_by_attendance.items()):
+    plt.bar(group, value, color=colors[i], edgecolor="white", linewidth=2)
+    plt.text(i, value / 2, f"{value:.1f}%", ha="center", va="center", color="white", fontsize=12, fontweight="bold")
+
+plt.title("Higher Attendance → Higher Graduation Rates", fontsize=16, pad=20)
+plt.ylabel("Graduation Rate (%)", fontsize=12)
+plt.xlabel("Attendance Level", fontsize=12)
+plt.grid(axis="y", linestyle="--", alpha=0.3)
+plt.savefig("attendance_graduation.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Relationship between School Attendance and Graduation Rates**](attendance_graduation.png){align=center width=90%}
+
+
+```{python}
+top_performing_education = ['60631', '60616', '60614', '60640', '60618', '60613', '60605', '60610', '60607', '60627']
+
+least_performing_education = ['60619', '60621', '60649', '60637', '60624', '60626', '60644', '60628', '60641', '60617']
+```
+
+### 4. Top Performing and Bottom Performing Education Zip Codes
+```{python}
+#| include: false
+# Filter data for top-performing and bottom-performing education zip codes
+top_performing_education = df_cleaned[df_cleaned['Zip Codes'].isin(top_performing_education)]
+least_performing_education = df_cleaned[df_cleaned['Zip Codes'].isin(least_performing_education)]
+
+# Total crime count for top and bottom performing zip codes
+top_crime_count = top_performing_education.shape[0]
+bottom_crime_count = least_performing_education.shape[0]
+
+# Plot total crime counts
+plt.figure(figsize=(12, 6))
+plt.bar(['Top Performing', 'Bottom Performing'], [top_crime_count, bottom_crime_count], color= ['#1f77b4','#ff7f0e'])
+plt.title('Total Crime Count: Top vs. Bottom Performing Counts')
+plt.ylabel('Crime Count')
+plt.savefig("top_bottom_zip_crime_counts.png", bbox_inches='tight')
+plt.show()
+```
+
+![**Top vs. Bottom Performing Zip Code Crime Counts (based on Graduation Rates)**](top_bottom_zip_crime_counts.png){align=center width=90%}
+
+## Race & Ethnicity and Education ##
+### Data Loading and Cleaning ###
+```{python}
+race_ethnicity_data_path = "/Users/changgeshi/Desktop/population.csv"
+race_ethnicity_data = pd.read_csv(race_ethnicity_data_path)
+
+race_ethnicity_data.info()
+#race_ethnicity_info = {
+    #"Columns": race_ethnicity_data.columns.tolist(),
+   #"Preview": race_ethnicity_data.head(),
+#}
+
+#keys_merged = set(merged_data_full.columns)
+#eys_race_ethnicity = set(race_ethnicity_data.columns)
+#common_keys = keys_merged.intersection(keys_race_ethnicity)
+
+```
+
+```{python}
+#| include: false
+race_ethnicity_data["geography"] = race_ethnicity_data["geography"].astype(str)
+merged_data_full["ZIP"] = merged_data_full["ZIP"].astype(str)
+
+combined_data = pd.merge(
+    merged_data_full,
+    race_ethnicity_data,
+    left_on="ZIP",
+    right_on="geography",
+    how="inner"
+)
+#combined_data.head(5)
+```
+
+### 5. Demographics in High & Low Education Performing Areas
+```{python}
+#| include: false
+# Academic Performance by Demographics
+plt.figure(figsize=(15, 8))
+
+demographic_performance = combined_data.groupby('ZIP').agg({
+    'latinx': 'mean',
+    'black_non-latinx': 'mean',
+    'white_non-latinx': 'mean',
+    'asian_non-latinx': 'mean',
+    'NWEA Reading Growth Percentile All Grades': 'mean',
+    'NWEA Math Growth All Grades': 'mean',
+    '4-Year Graduation Rate Percentage 2013': 'mean'
+}).reset_index()
+
+high_performing = demographic_performance.nlargest(5, '4-Year Graduation Rate Percentage 2013')
+low_performing = demographic_performance.nsmallest(5, '4-Year Graduation Rate Percentage 2013')
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+demographics = ['latinx', 'black_non-latinx', 'white_non-latinx', 'asian_non-latinx']
+labels = ['Latino', 'Black', 'White', 'Asian']
+colors = ['#FFB6C1', '#90EE90', '#FFDAB9', '#B0E0E6']
+
+high_demo_means = high_performing[demographics].mean()
+low_demo_means = low_performing[demographics].mean()
+
+ax1.bar(labels, high_demo_means, color=colors, alpha=0.8)
+ax1.set_title('Demographics in High Performing Areas')
+ax1.set_ylabel('Proportion')
+ax1.grid(False)
+plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45)
+
+ax2.bar(labels, low_demo_means, color=colors, alpha=0.8)
+ax2.set_title('Demographics in Low Performing Areas')
+ax2.set_ylabel('Proportion')
+ax2.grid(False) 
+plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45)
+plt.tight_layout()
+plt.savefig("demo_high_low.png", bbox_inches='tight')
+plt.show()
+```
+
+![**Demographics in High Performing Area and Low Performing Area**](demo_high_low.png){align=center width=90%}
+
+
+### 6. Demographics Composition Across Performance Levels
+```{python}
+#| include: false
+# Performance Categories Analysis
+plt.figure(figsize=(12, 6))
+
+combined_data['Performance_Category'] = pd.qcut(
+    combined_data['4-Year Graduation Rate Percentage 2013'],
+    q=4,
+    labels=['Low', 'Medium-Low', 'Medium-High', 'High']
+)
+
+performance_demographics = combined_data.groupby('Performance_Category').agg({
+    'latinx': 'mean',
+    'black_non-latinx': 'mean',
+    'white_non-latinx': 'mean',
+    'asian_non-latinx': 'mean'
+}).reset_index()
+
+ax = plt.gca()
+bottom = np.zeros(4)
+
+for demographic, color, label in zip(demographics, colors, labels):
+    values = performance_demographics[demographic]
+    plt.bar(performance_demographics['Performance_Category'], values,
+            bottom=bottom, color=color, label=label, alpha=0.8)
+    bottom += values
+
+plt.title('Demographic Composition Across Performance Levels')
+plt.xlabel('Performance Category')
+plt.ylabel('Proportion')
+plt.legend(title='Demographics')
+plt.grid(False)
+plt.tight_layout()
+plt.savefig("demo_compo.png", bbox_inches='tight')
+plt.show()
+```
+
+![**Demographic Composition Across Different Performance Levels**](demo_compo.png){align=center width=90%}
+
+### 7. Demographics in Challenging Areas and Safe Areas
+```{python}
+#| include: false
+combined_data['Safety_Score'] = (
+    combined_data['4-Year Graduation Rate Percentage 2013'] * 0.3 +
+    combined_data['Student Attendance Percentage 2013'] * 0.3 -
+    combined_data['One-Year DropOut Rate Percentage 2013'] * 0.2 -
+    combined_data['Suspensions Per 100 2013'] * 0.2
+)
+
+zip_safety = combined_data.groupby('ZIP')['Safety_Score'].mean().sort_values()
+dangerous_zips = zip_safety.head(5).index
+safe_zips = zip_safety.tail(5).index
+
+plt.figure(figsize=(15, 8))
+demographic_metrics = {
+    'ZIP': [],
+    'Safety_Level': [],
+    'Black': [],
+    'Latino': [],
+    'White': [],
+    'Asian': [],
+    'Graduation_Rate': [],
+    'Attendance_Rate': [],
+    'Dropout_Rate': []
+}
+
+for zip_code in list(dangerous_zips) + list(safe_zips):
+    zip_data = combined_data[combined_data['ZIP'] == zip_code]
+    safety_level = 'Challenging' if zip_code in dangerous_zips else 'Safe'
+
+    demographic_metrics['ZIP'].append(zip_code)
+    demographic_metrics['Safety_Level'].append(safety_level)
+    demographic_metrics['Black'].append(zip_data['black_non-latinx'].mean())
+    demographic_metrics['Latino'].append(zip_data['latinx'].mean())
+    demographic_metrics['White'].append(zip_data['white_non-latinx'].mean())
+    demographic_metrics['Asian'].append(zip_data['asian_non-latinx'].mean())
+    demographic_metrics['Graduation_Rate'].append(zip_data['4-Year Graduation Rate Percentage 2013'].mean())
+    demographic_metrics['Attendance_Rate'].append(zip_data['Student Attendance Percentage 2013'].mean())
+    demographic_metrics['Dropout_Rate'].append(zip_data['One-Year DropOut Rate Percentage 2013'].mean())
+
+df_metrics = pd.DataFrame(demographic_metrics)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+for i, zip_group in enumerate([dangerous_zips, safe_zips]):
+    ax = ax1 if i == 0 else ax2
+    data = df_metrics[df_metrics['ZIP'].isin(zip_group)]
+    bottom = np.zeros(len(data))
+
+    for demographic, color in zip(['Black', 'Latino', 'White', 'Asian'],
+                                ['#FF6F61', '#36D1DC', '#FFD700', '#008080']):
+        ax.bar(data['ZIP'], data[demographic], bottom=bottom, label=demographic,
+               color=color, alpha=0.7)
+        bottom += data[demographic]
+
+    ax.set_title(f"{'Challenging' if i == 0 else 'Safe'} Areas Demographics")
+    ax.set_xticklabels(data['ZIP'], rotation=45)
+    ax.grid(False)
+
+ax1.legend(title='Demographics')
+plt.tight_layout()
+plt.savefig('demo_challenge_safe.png')
+plt.show()
+```
+
+![**Demographics in Challenging Areas and Safe Areas**](demo_challenge_safe.png){align=center width=90%}
+
+
+### 8. Correlation Matrix of Key Variables
+
+**Key Variables**
+
+- 4-Year Graduation Rate Percentage 2013
+
+- Student Attendance Percentage 2013
+
+- One-Year DropOut Rate Percentage 2013
+
+- Suspensions Per 100 2013
+
+- black_non-latinx
+
+- latinx
+
+- white_non-latinx
+
+- asian_non-latinx
+
+```{python}
+#| include: false
+# Correlation Analysis
+plt.figure(figsize=(12, 8))
+
+variables = [
+    '4-Year Graduation Rate Percentage 2013',
+    'Student Attendance Percentage 2013',
+    'One-Year DropOut Rate Percentage 2013',
+    'Suspensions Per 100 2013',
+    'black_non-latinx',
+    'latinx',
+    'white_non-latinx',
+    'asian_non-latinx'
+]
+
+correlation_matrix = combined_data[variables].corr()
+sns.heatmap(correlation_matrix, annot=True, cmap='RdYlBu', center=0, fmt='.2f')
+plt.title('Correlation Matrix of Key Variables')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.savefig('correlation_matrix.png')
+plt.show()
+```
+
+![**Correlation Matrix of Key Variables between Demographics & School Performance**](correlation_matrix.png){align=center width=90%}
+
+## Crime and Education ##
+
+### 9. Yearly Crime Counts: Top vs. Bottom Education Performing Zip Codes
+```{python}
+#| include: false
+# Group data by 'Year' for top and bottom performing ZIP codes
+top_crime_yearly = top_performing_education.groupby('Year').size()
+bottom_crime_yearly = least_performing_education.groupby('Year').size()
+
+# Create a DataFrame for easy plotting
+crime_yearly_df = pd.DataFrame({
+    'Top Performing': top_crime_yearly,
+    'Bottom Performing': bottom_crime_yearly
+}).reset_index()
+
+# Plot grouped bar chart
+plt.figure(figsize=(14, 7))
+x = crime_yearly_df['Year']  # X-axis values (years)
+bar_width = 0.35  # Width of each bar
+
+# Positions for the bars
+x_indexes = np.arange(len(x))  # Numeric positions of the years
+plt.bar(x_indexes - bar_width / 2, crime_yearly_df['Top Performing'], width=bar_width, color='#1f77b4', label='Top Performing')
+plt.bar(x_indexes + bar_width / 2, crime_yearly_df['Bottom Performing'], width=bar_width, color='#ff7f0e', label='Bottom Performing')
+
+# Formatting the chart
+plt.title('Yearly Crime Count: Top vs. Bottom Performing Education ZIP Codes')
+plt.xlabel('Year')
+plt.ylabel('Crime Count')
+plt.xticks(x_indexes, x, rotation=45)  # Set tick positions and labels
+plt.legend()
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()  # Adjust layout for readability
+plt.savefig("yearly_crime_count.png", bbox_inches='tight')
+#plt.show()
+```
+
+![**Top vs. Bottom Performing Zip Code Crime Counts over Years**](yearly_crime_count.png){align=center width=90%}
+
+### 10. Crime Type in Top Education Performing Zip Codes
+```{python}
+#| include: false
+# 10 Primary Crime Type count for top-performing zip codes
+plt.figure(figsize=(20, 12))
+top_10_crime_types = top_performing_education['Primary Type'].value_counts().head(10).index
+sns.countplot(data=top_performing_education[top_performing_education['Primary Type'].isin(top_10_crime_types)],
+              y='Primary Type',
+              order=top_10_crime_types,
+              palette='Set1')
+plt.title('Top 10 Crime Types in Top-Performing Education ZIP Codes', fontsize=24)
+plt.xlabel('Count', fontsize=16)
+plt.ylabel('Crime Primary Type', fontsize=16)
+
+# Make x-tick and y-tick labels larger and bold
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.grid(axis='x', linestyle='--', alpha=0.7)
+plt.savefig('top_10_crime_types_top_performing_zip_codes.png')
+#plt.show()
+```
+
+![**Top 10 Crime Type in Top Education Performing Zip Codes**](top_10_crime_types_top_performing_zip_codes.png){align=center width=90%}
+
+### 11. Crime Type in Bottom Education Performing Zip Codes
+```{python}
+#| include: false
+# Crime 'Primary Type' count for bottom-performing zip codes (Top 10 only)
+plt.figure(figsize=(20, 12))
+
+# Get top 10 crime types
+top_10_crime_types = least_performing_education['Primary Type'].value_counts().head(10).index
+
+# Filter data to only include the top 10 crime types
+sns.countplot(data=least_performing_education[least_performing_education['Primary Type'].isin(top_10_crime_types)],
+              y='Primary Type',
+              order=top_10_crime_types,
+              palette='Set2')
+
+# Title and label formatting
+plt.title('Top 10 Crime Types in Low-Performing Education ZIP Codes', fontsize=24, fontweight='bold')
+plt.xlabel('Count', fontsize=16)
+plt.ylabel('Crime Primary Type', fontsize=16)
+
+# Make x-tick and y-tick labels larger and bold
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.grid(axis='x', linestyle='--', alpha= 0.7)
+plt.savefig('bot_10_crime_types.png')
+#plt.show()
+```
+
+![**Top 10 Crime Type in Bottom Education Performing Zip Codes**](bot_10_crime_types.png){align=center width=90%}
+
+**Analysis:**
+
+- First degree murder is the most committed crime in least performing neighborhoods, while it does not appear in the top performing neighborhoods.
+
+- Narcotics-related crime - prevalent to spread through schools - also takes one of the top spots in least performing neighborhoods, and this is much lower in top performing neighborhoods.
